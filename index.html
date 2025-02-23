@@ -6,6 +6,7 @@
     <title>Auto Ads Demo</title>
     <script src='//whephiwums.com/sdk.js' data-zone='8957361' data-sdk='show_8957361'></script>
     <style>
+        /* Keep original styles unchanged */
         body {
             margin: 0;
             padding: 0;
@@ -36,6 +37,7 @@
             font-size: 14px;
             max-width: 120px;
             box-sizing: border-box;
+            z-index: 1000;
         }
 
         @media (max-width: 768px) {
@@ -71,8 +73,35 @@
     <script>
         let adCount = 0;
         const maxAds = 100;
-        const adCloseDelay = 1000; // 1 second between ads
-        const adDisplayTime = 15000; // 15 seconds
+        const adCloseDelay = 1000;
+        const adDisplayTime = 15000;
+        let currentAdContainer = null;
+
+        function forceCloseAd() {
+            // Method 1: Remove all iframes
+            document.querySelectorAll('iframe').forEach(iframe => {
+                iframe.remove();
+            });
+
+            // Method 2: Hide overlay elements
+            document.querySelectorAll('div').forEach(div => {
+                if (div.style.position === 'fixed' && 
+                    div.style.zIndex === '9999' &&
+                    div.style.backgroundColor) {
+                    div.remove();
+                }
+            });
+
+            // Method 3: Clear ad container
+            if (currentAdContainer) {
+                currentAdContainer.innerHTML = '';
+                currentAdContainer.remove();
+                currentAdContainer = null;
+            }
+
+            // Method 4: Reset body overflow
+            document.body.style.overflow = 'auto';
+        }
 
         function showAd() {
             if (adCount >= maxAds) {
@@ -80,26 +109,32 @@
                 return;
             }
 
-            // Update counter
             document.getElementById('counter').textContent = `Ad count: ${adCount + 1}/${maxAds}`;
 
-            // Show the ad
-            show_8957361()
+            // Create container for ad
+            currentAdContainer = document.createElement('div');
+            document.body.appendChild(currentAdContainer);
+
+            // Show ad
+            const adPromise = show_8957361()
                 .then(() => {
-                    // Ad closed successfully
                     adCount++;
                     setTimeout(showAd, adCloseDelay);
                 })
                 .catch(error => {
-                    // Handle errors if needed
                     console.error('Ad error:', error);
+                    adCount++;
                     setTimeout(showAd, adCloseDelay);
                 });
 
-            // Force close after 15 seconds (fallback)
+            // Force close after 15 seconds
             setTimeout(() => {
-                adCount++;
-                document.getElementById('counter').textContent = `Ad count: ${adCount}/${maxAds}`;
+                forceCloseAd();
+                if (adCount < maxAds) {
+                    adCount++;
+                    document.getElementById('counter').textContent = `Ad count: ${adCount}/${maxAds}`;
+                    setTimeout(showAd, adCloseDelay);
+                }
             }, adDisplayTime);
         }
 
