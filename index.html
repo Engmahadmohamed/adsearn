@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad Test</title>
+    <!-- Test with both HTTP and HTTPS -->
+    <script src='https://whephiwums.com/sdk.js' data-zone='8957361' data-sdk='show_8957361'></script>
+    <style>
+        /* Previous styles remain unchanged */
+    </style>
+</head>
+<body>
+    <div id="loading">Initializing ads...</div>
+    <div id="counter">Ad count: 0/100</div>
+    <div id="debug" style="position: fixed; bottom: 10px; left: 10px; color: red;"></div>
+
+    <script>
+        let adCount = 0;
+        const maxAds = 100;
+        const adCloseDelay = 3000;
+        const adDisplayTime = 15000;
+
+        function debugLog(message) {
+            document.getElementById('debug').textContent = message;
+            console.log(message);
+        }
+
+        function initializeAds() {
+            if (typeof show_8957361 === 'undefined') {
+                debugLog('Ad SDK not loaded! Check:');
+                debugLog('1. Ad blocker disabled?');
+                debugLog('2. Valid domain?');
+                debugLog('3. Network connection?');
+                return false;
+            }
+            return true;
+        }
+
+        function showAd() {
+            if (!initializeAds()) return;
+
+            if (adCount >= maxAds) {
+                document.getElementById('loading').textContent = 'Completed 100 ads';
+                return;
+            }
+
+            document.getElementById('counter').textContent = `Ad count: ${adCount + 1}/${maxAds}`;
+
+            try {
+                const ad = show_8957361({
+                    type: 'inApp',
+                    inAppSettings: {
+                        frequency: 1,
+                        capping: 0.1,
+                        interval: 15,
+                        timeout: 5,
+                        everyPage: false
+                    }
+                });
+
+                const closeTimer = setTimeout(() => {
+                    debugLog('Force closing ad after 15s');
+                    if (ad && ad.close) ad.close();
+                    handleAdClose();
+                }, adDisplayTime);
+
+                ad.then(() => {
+                    clearTimeout(closeTimer);
+                    debugLog('Ad closed naturally');
+                    handleAdClose();
+                }).catch(error => {
+                    debugLog(`Ad error: ${error.message}`);
+                    handleAdClose();
+                });
+
+            } catch (error) {
+                debugLog(`Fatal error: ${error.message}`);
+                handleAdClose();
+            }
+        }
+
+        function handleAdClose() {
+            adCount++;
+            document.getElementById('counter').textContent = `Ad count: ${adCount}/${maxAds}`;
+            if (adCount < maxAds) {
+                setTimeout(showAd, adCloseDelay);
+            } else {
+                document.getElementById('loading').textContent = 'Completed 100 ads';
+            }
+        }
+
+        // Start with delay
+        setTimeout(() => {
+            if (initializeAds()) {
+                document.getElementById('loading').textContent = 'Showing ads...';
+                showAd();
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
